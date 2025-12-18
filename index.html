@@ -1,0 +1,1157 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, updateDoc, deleteDoc, arrayUnion, runTransaction } from 'firebase/firestore';
+import { LucideDices, LucideMessageSquare, LucideUsers, LucideSettings, LucideSkull, LucideZap, LucideShieldCheck, LucideInfo, LucideStar, LucideHeart, LucideUserPlus, LucideUserMinus, LucideShieldAlert, LucideGhost, LucideChevronRight, LucideCheckCircle2, LucideCrown, LucideTarget, LucideUser, LucideGavel, LucideEye, LucideLoader2, LucideActivity, LucideHandshake, LucideShield, LucideTrophy, LucideSword, LucideLogOut } from 'lucide-react';
+
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'algoritmo-td-v2';
+
+const BACKGROUNDS = [
+    "https://www.liligo.it/magazine-viaggiatore/wp-content/uploads/sites/45/2016/08/Seoul.jpg",
+    "https://static.vecteezy.com/system/resources/previews/033/839/476/large_2x/empty-futuristic-white-room-with-copy-space-for-presentation-product-ai-generative-photo.jpeg",
+    "https://thumbs.dreamstime.com/b/white-futuristic-background-abstract-room-d-render-space-city-sci-fi-texture-generative-ai-white-futuristic-background-abstract-276773335.jpg"
+];
+
+const ROSTER = [
+    { name: "Lord Farquaad", img: "https://i.pinimg.com/736x/35/93/ac/3593acb0b8f9d75704f5a0778c693e73.jpg" },
+          { name: "Marinette", img: "https://i.pinimg.com/736x/b8/74/55/b87455575cd069609007a639c9490293.jpg" },
+          { name: "Adrien", img: "https://i.pinimg.com/1200x/5c/2d/c7/5c2dc740ed2fe906b6afaf1320bf4273.jpg" },
+		  { name: "Alya", img: "https://i.pinimg.com/736x/3e/3b/99/3e3b99fc26e6b2cb8bf7359c53acca24.jpg" },
+		  { name: "Luka", img: "https://i.pinimg.com/736x/16/40/f3/1640f3c6c2b14e00c110316e02e86c7f.jpg" },
+		  { name: "Kagami", img: "https://i.pinimg.com/736x/56/e2/ad/56e2adc6421c613a6d00b393abd1a6c1.jpg" },
+          { name: "Re Julien", img: "https://i.pinimg.com/736x/1e/17/19/1e17194ef5b383e4202fbb4875cfbd81.jpg" },
+          { name: "Mortino", img: " https://i.pinimg.com/736x/b9/56/ec/b956ec4741a1ba90c7176478e203f78b.jpg" },
+		  { name: "Skipper", img: "https://i.pinimg.com/736x/e6/f0/5b/e6f05b20dda962344721db983c882679.jpg" },
+		  { name: "Kowalski", img: "https://i.pinimg.com/736x/e7/bc/38/e7bc382c57bfb2f3de7f44a0cce39fcd.jpg" },
+		  { name: "Soldato", img: "https://i.pinimg.com/1200x/5e/3f/0d/5e3f0d06b262dc18869f550806d1bdb4.jpg" },
+		  { name: "Baby Soldato", img: "https://i.pinimg.com/736x/81/3c/57/813c57fcb969d58fac1672594da05532.jpg" },
+          { name: "Gwen", img: "https://i.pinimg.com/1200x/59/d7/15/59d71578cd5f889ae898bbc83dda29dc.jpg" },
+          { name: "Julia", img: "https://i.pinimg.com/736x/80/c2/83/80c283f82be806cdd40e71d303d09474.jpg" },
+          { name: "Duncan", img: "https://i.pinimg.com/736x/3f/2d/e1/3f2de1cd71448e1413ab3ccafbed5b4d.jpg" },
+		  { name: "Heather", img: "https://i.pinimg.com/736x/81/5b/b6/815bb632721e7d38f26d35801466dd30.jpg" },
+		  { name: "Courtney", img: "https://i.pinimg.com/736x/ad/94/34/ad9434468d4a502c89ea01c0249e8899.jpg" },
+		  { name: "Lindsay", img: "https://i.pinimg.com/1200x/ed/96/df/ed96df179eaa7030663473c575067cb4.jpg" },
+		  { name: "Bowie", img: "https://i.pinimg.com/1200x/03/6c/0f/036c0ffe4fcd39d5840ed60a2fb104c3.jpg" },
+		  { name: "Raj", img: "https://i.pinimg.com/736x/05/b2/97/05b297c32cd4507adbd7b0c7ce84fb3a.jpg" },
+          { name: "Conan", img: "https://i.pinimg.com/736x/19/fe/f0/19fef0cf0b848e1f5fe54d9b641af4ce.jpg" },
+          { name: "Ran", img: "https://i.pinimg.com/1200x/46/ee/c7/46eec75f3a3eeb4846216dfdd7083ff4.jpg" },
+          { name: "Rias", img: "https://i.pinimg.com/736x/d1/a7/df/d1a7df7bfe5769c39e9b66041144e4eb.jpg" },
+          { name: "Bayonetta", img: "https://i.pinimg.com/1200x/60/fc/c0/60fcc064dc97d24b96a9517f726c1970.jpg" },
+          { name: "Yoshi", img: "https://i.pinimg.com/736x/f3/05/7f/f3057f14de68b0afe682ffe93dcc479b.jpg" },
+          { name: "Rosalinda", img: "https://i.pinimg.com/736x/09/14/f0/0914f029e712e92de9d4f0081a5da032.jpg" },
+		  { name: "Peach", img: "https://i.pinimg.com/736x/c0/53/fb/c053fb4dd4f8c0dd9c277212490b1962.jpg" },
+		  { name: "Daisy", img: "https://i.pinimg.com/736x/e2/47/61/e2476198364b030d3a8f9a1f93becfb9.jpg" },
+		  { name: "Pauline", img: "https://i.pinimg.com/736x/86/83/ee/8683ee7c89735311e61addebf517a3de.jpg" },
+		  { name: "Wario", img: "https://i.pinimg.com/736x/2f/ea/be/2feabe47151fd436fbf358c299eb4870.jpg" },
+          { name: "Brago", img: "https://i.pinimg.com/736x/c6/75/2d/c6752dab1b78e4c4adc64b6ffd09b755.jpg" },
+          { name: "Ponygon", img: "https://i.pinimg.com/736x/53/e4/fb/53e4fb1c1f8964ca949c4e72663edd8f.jpg" },
+		  { name: "Zatch Bell", img: "https://i.pinimg.com/736x/9c/64/41/9c6441a65ad0c75dbf8eaee194659acf.jpg" },
+		  { name: "Tio", img: "https://i.pinimg.com/736x/ea/f3/30/eaf3305c1cb5b8d7475da20687b0ec40.jpg" },
+		  { name: "Penny", img: "https://i.pinimg.com/736x/f5/c2/17/f5c21738d5b922e6108b7b72bc33a25b.jpg" },
+          { name: "Steven", img: "https://i.pinimg.com/736x/2b/fd/20/2bfd202ab782611ea6a0fb0cdcdc37ab.jpg" },
+          { name: "Perla", img: "https://i.pinimg.com/1200x/bf/d3/78/bfd378c4c8921a30ee00cf48bdb7fa11.jpg" },
+		  { name: "Garnet", img: "https://i.pinimg.com/736x/3f/8a/05/3f8a05bdbc4a7622f521eb294f51d4c8.jpg" },
+		  { name: "Peridot", img: "https://i.pinimg.com/736x/d5/3e/f6/d53ef6f0ec684f7f0f888971dded59fb.jpg" },
+		  { name: "Lapis", img: "https://i.pinimg.com/736x/88/0f/a5/880fa555f1f954dbca08aded1be846d2.jpg" },
+          { name: "Ametista", img: "https://i.pinimg.com/736x/b4/e4/45/b4e445061d31ec75fa4ee63e20ebf87e.jpg" },
+          { name: "Nicole", img: "https://i.pinimg.com/736x/81/24/e4/8124e43da43e1d06dcdbca15f22a0cd9.jpg" },
+          { name: "Gumball", img: "https://i.pinimg.com/736x/ae/88/e3/ae88e329120b3edc196af1ebbfd8fe07.jpg" },
+          { name: "Anais", img: "https://i.pinimg.com/736x/0a/8b/ab/0a8bab3e6151e894a2d9b96749d63e61.jpg" },
+          { name: "Lisa", img: "https://i.pinimg.com/736x/e5/2d/fe/e52dfee5a58f5dad19f9e0592c63a7cd.jpg" },
+          { name: "Bart", img: "https://i.pinimg.com/1200x/cf/dc/86/cfdc8641fb98a49c0e731a8e6c002b02.jpg" },
+          { name: "Marge", img: "https://i.pinimg.com/736x/77/6d/41/776d41748c4c9ae5940d8a9b10db881a.jpg" },
+          { name: "Ned", img: "https://i.pinimg.com/1200x/4e/12/0e/4e120eb01e572b2ad08af6552214ce82.jpg" },
+          { name: "Neera", img: "https://i.pinimg.com/736x/49/15/3c/49153c31d0b41814b3c862a98d848b40.jpg" },
+          { name: "Perry", img: "https://i.pinimg.com/736x/3e/02/28/3e02284ed84c86d445b3bee5639c81f6.jpg" },
+		  { name: "Candace", img: "https://i.pinimg.com/originals/72/9c/70/729c70cbfd05dafa8f7cf9700f0284e3.gif" },
+		  { name: "Isabella", img: "https://i.pinimg.com/1200x/8f/b6/53/8fb6531754417925d60f7ba9276d824d.jpg" },
+          { name: "Nonnina", img: "https://i.pinimg.com/736x/c0/82/61/c08261487f081ba5ed490c5dc317b112.jpg" },
+          { name: "Sid", img: "https://i.pinimg.com/1200x/69/4a/0e/694a0eeaf3c1182a15263d580cd0f7eb.jpg" },
+          { name: "Diego", img: "https://i.pinimg.com/736x/56/bf/be/56bfbecae5aa54c2dd6ee8620fc66361.jpg" },
+          { name: "Alex", img: "https://i.pinimg.com/1200x/2d/c2/4c/2dc24cfae5fe2848bc8bdd1f684d1c8d.jpg" },
+          { name: "Corvina GO", img: "https://i.pinimg.com/736x/92/91/db/9291dbef281abc1f05e709c94fe17eba.jpg" },
+          { name: "Corvina TT", img: "https://i.pinimg.com/736x/b8/09/d1/b809d102bfdc848380a4d73e94fe7769.jpg" },
+          { name: "Stellarubia GO", img: "https://i.pinimg.com/736x/b8/7f/35/b87f358405b6d516a3e6321709aa4884.jpg" },
+		  { name: "Cyborg TT", img: "https://i.pinimg.com/736x/73/47/3c/73473c2ae7c39cf56a81d8c58ef2b153.jpg" },
+		  { name: "BeastBoy TT", img: "https://i.pinimg.com/736x/26/f4/55/26f455cbc9893aa45da15904c8a45bdd.jpg" },
+          { name: "Robin TT", img: "https://i.pinimg.com/736x/cd/57/18/cd57186e05d47ef5f75bef6f0a33f59c.jpg" },
+          { name: "Nightwing", img: "https://i.pinimg.com/736x/47/bc/ce/47bcceac6b573a1b8277b6a75f0a4b55.jpg" },
+          { name: "Robin GO", img: "https://i.pinimg.com/736x/92/b6/50/92b650adbe57c5cec55a3ef46b65e933.jpg" },
+          { name: "Johnny Bravo", img: "https://i.pinimg.com/736x/4a/62/70/4a6270678f7adcf130672bcd0af41fdf.jpg" },
+          { name: "Daphne", img: "https://i.pinimg.com/736x/aa/91/39/aa9139e32492a07712926dbd0db0b521.jpg" },
+          { name: "Shaggy", img: "https://i.pinimg.com/1200x/0e/46/70/0e46703bcf03ff84420b0b71474c9ed7.jpg" },
+          { name: "Francine", img: "https://i.pinimg.com/736x/b3/b5/f6/b3b5f6849a52b4daed92424650a98f7f.jpg" },
+          { name: "Hayley", img: "https://i.pinimg.com/originals/9d/58/70/9d58707a635942c60ee7fd1afc8403bd.gif" },
+          { name: "Stan", img: "https://i.pinimg.com/736x/cc/48/c0/cc48c09c661d4f9af432a37c6b908e41.jpg" },
+          { name: "Stewie", img: "https://i.pinimg.com/1200x/1e/a2/cc/1ea2cc7a197e3841086f4a1ce18b089c.jpg" },
+          { name: "Lois", img: "https://i.pinimg.com/736x/6e/f7/42/6ef74238d3938c8e02f62c54fa7fb4c5.jpg" },
+          { name: "Peter", img: "https://i.pinimg.com/736x/9e/40/74/9e4074bbe7890cd245b51b9ff5c0e33c.jpg" },
+          { name: "Fry", img: "https://i.pinimg.com/736x/d6/f4/ac/d6f4acc1bfae65c673b4b5e02a89ce71.jpg" },
+          { name: "Leela", img: "https://i.pinimg.com/736x/e9/b2/71/e9b27128376e5b5f23aaafdc9956bd50.jpg" },
+          { name: "Kim", img: "https://i.pinimg.com/736x/5d/7d/55/5d7d55fec8f9d8fb81e9db4438235f71.jpg" },
+          { name: "Tess", img: "https://i.pinimg.com/736x/3f/bc/a9/3fbca9cb61b70f4d58c83598f0236764.jpg" },
+		  { name: "Hunter", img: "https://i.pinimg.com/736x/0d/f2/73/0df2731820fb9f74774f5e8607556625.jpg" },
+		  { name: "Jake DC", img: "https://i.pinimg.com/736x/bc/a0/76/bca0765eaa0f1e88b0070a5b92c22de7.jpg" },
+		  { name: "Tom", img: "https://i.pinimg.com/736x/c2/21/a8/c221a8a2ae866afe53a53843efcfc05c.jpg" },
+		  { name: "Ashley", img: "https://i.pinimg.com/736x/d1/c5/5f/d1c55f57218baecf0c2e160155e80c61.jpg" },
+		  { name: "Grett", img: "https://i.pinimg.com/736x/fa/fb/5d/fafb5de75578a12b0eb2eb5efb035d23.jpg" },
+		  { name: "Fiore", img: "https://i.pinimg.com/736x/78/79/43/787943ad5e0e1991f0a8f30189d0969f.jpg" },
+		  { name: "Ally", img: "https://i.pinimg.com/736x/58/a8/e6/58a8e6232e4e38ca2a867f208c1b83fa.jpg" },
+		  { name: "Isabelle", img: "https://i.pinimg.com/736x/5e/1a/f6/5e1af69ac6196b02e015133b3de84fd3.jpg" },
+		  { name: "Timmy", img: "https://i.pinimg.com/736x/91/de/1b/91de1b5b1897a71a36957191623af776.jpg" },
+		  { name: "Trixie", img: "https://i.pinimg.com/736x/05/08/a7/0508a771507d83f2b52a97467f57d581.jpg" },
+		  { name: "Vicky", img: "https://i.pinimg.com/1200x/f5/1f/2e/f51f2e0bff74df3173b110f24943a6fc.jpg" },
+		  { name: "Finn", img: "https://i.pinimg.com/736x/7e/0b/c9/7e0bc9826a7652264f32a44bc8a40ede.jpg" },
+		  { name: "Fiona", img: "https://i.pinimg.com/1200x/0b/9d/85/0b9d85c6c70be88471ad753b014de88b.jpg" },
+		  { name: "Jake", img: "https://i.pinimg.com/1200x/cd/77/22/cd7722b2f98ffc75d1128913df6861d7.jpg" },
+		  { name: "Cake", img: "https://i.pinimg.com/736x/70/6c/08/706c08681ae007b24d103c44910431c1.jpg" },
+		  { name: "Marceline", img: "https://i.pinimg.com/736x/3a/58/7d/3a587db4bdc947c7d3458dc9582af9cd.jpg" },
+		  { name: "Zoey", img: "https://i.pinimg.com/736x/48/53/3e/48533edc4b5054ec0a7bca17130f22af.jpg" },
+		  { name: "Rochelle", img: "https://i.pinimg.com/736x/bb/56/ed/bb56ed9fa63be897ba67032706d75cc7.jpg" },
+		  { name: "Ellis", img: "https://i.pinimg.com/736x/be/58/d5/be58d584da6dfa953ec9be2bd0ac94ac.jpg" },
+		  { name: "Tanjiro", img: "https://i.pinimg.com/736x/e9/6d/20/e96d20e7c159897a05c6baa57fac7f35.jpg" },
+		  { name: "Hinosuke", img: "https://i.pinimg.com/1200x/cf/d8/27/cfd82718c3f40c906665a0d680196439.jpg" },
+		  { name: "Zenitsu", img: "https://i.pinimg.com/1200x/91/12/9d/91129dee62e996da6313160605cb514d.jpg" },
+		  { name: "Nezuko", img: "https://i.pinimg.com/1200x/72/b7/56/72b756ee900c26b3e616ba439e1f05c2.jpg" },
+		  { name: "Shinobu", img: "https://i.pinimg.com/736x/8b/71/a5/8b71a53282f08aea93f83852a01e4e44.jpg" },
+		  { name: "Tengen", img: "https://i.pinimg.com/736x/33/ef/07/33ef07083eb82a6e314b32b2d6e72295.jpg" },
+		  { name: "Aang", img: "https://i.pinimg.com/736x/21/c6/02/21c60273e7409b871140d5cee2cace5b.jpg" },
+		  { name: "Katara", img: "https://i.pinimg.com/736x/88/3b/a4/883ba48c5727d96962d2a93536f04c17.jpg" },
+		  { name: "Toph", img: "https://i.pinimg.com/736x/ac/0e/6c/ac0e6c1b3329b309d09cb44e968a41d7.jpg" },
+		  { name: "Sokka", img: "https://i.pinimg.com/736x/61/a7/91/61a7919a2c2df87b0106a425c031b9ca.jpg" },
+		  { name: "Mordecai", img: "https://i.pinimg.com/736x/4f/2e/04/4f2e04cace599c4433a84b490d12c2a4.jpg" },
+		  { name: "Rigby", img: "https://i.pinimg.com/736x/dd/7d/18/dd7d18fad1de3125ac14554e42f4d55f.jpg" },
+		  { name: "Superboy", img: "https://i.pinimg.com/1200x/70/d3/45/70d345e2d54b002fbc96b4ae8aa255e5.jpg" },
+		  { name: "Miss Martian", img: "https://i.pinimg.com/1200x/f9/8c/75/f98c75467a5002ad20a36272cfe9faa1.jpg" },
+		  { name: "Zatanna", img: "https://i.pinimg.com/1200x/c9/9f/59/c99f5937cc6afce81e3298a007468992.jpg" },
+		  { name: "Draculaura", img: "https://i.pinimg.com/236x/49/d8/23/49d823b49c0621162712fb43dd5bf002.jpg" },
+		  { name: "Clawdeen", img: "https://i.pinimg.com/736x/fe/cb/1c/fecb1c67924cd56bb01e19deb12294f1.jpg" },
+		  { name: "Frankie", img: "https://i.pinimg.com/736x/c0/ae/bb/c0aebba7d0b329e4a8e26f92d36a857a.jpg" },
+		  { name: "Shego", img: "https://i.pinimg.com/736x/54/70/77/5470771ee32d3350ffa08f921bb3d1ad.jpg" },
+		  { name: "Ariana Grande", img: "https://media.tenor.com/1u94p6qR01gAAAAM/ariana-grande-eternal-sunshine.gif" },
+		  { name: "Will", img: "https://i.pinimg.com/originals/88/80/73/8880736b5695844044e0e38c8063a1ff.gif" },
+		  { name: "Carlos Oliveira", img: "https://i.pinimg.com/originals/32/0d/d1/320dd13031f1aba8a2d3d9b9837174f4.gif" },
+		  { name: "Leon", img: "https://i.pinimg.com/736x/db/ef/fc/dbeffc6e915a929f7dbe908390f5af42.jpg" },
+		  { name: "Spongebob", img: "https://i.pinimg.com/originals/4c/74/21/4c742132b3f7018e49ae1901a2ab3e68.gif" },
+		  { name: "Patrick", img: "https://i.pinimg.com/736x/cc/45/b5/cc45b504e5bba418a3621d894a7693d6.jpg" },
+		  { name: "Squiddi", img: "https://i.pinimg.com/originals/bb/9a/08/bb9a082dd1a1a8f49200b8f5e5392d23.gif" },
+		  { name: "Mr Krab", img: "https://i.pinimg.com/1200x/74/9c/f5/749cf53dd48dbb440fcde8d958c7dbb1.jpg" },
+		  { name: "Plankton", img: "https://i.pinimg.com/736x/4c/27/4f/4c274f1e983ecd433672cfef1060872f.jpg" },
+		  { name: "Alvin", img: "https://i.pinimg.com/1200x/42/b1/da/42b1da0676938e04cfcd2d16ae13e067.jpg" },
+		  { name: "Poison Ivy", img: "https://i.pinimg.com/736x/72/f5/98/72f598d1ca69f3de7f38206b38d79066.jpg" },
+          { name: "Sonic", img: "https://i.pinimg.com/1200x/4f/22/d2/4f22d2cd449a419b3859197438300dd2.jpg" },
+		  { name: "Tails", img: "https://i.pinimg.com/736x/cb/f8/43/cbf84308cca2de1d9a776410716c6aee.jpg" },
+		  { name: "Dr Eggman", img: "https://i.pinimg.com/736x/ca/6a/ec/ca6aec757d82fbd5498fc2f5322ffc2c.jpg" },
+		  { name: "Scar", img: "https://i.pinimg.com/736x/4b/cc/0e/4bcc0e93c7086f7359c3e99fea022cd6.jpg" },
+		  { name: "Malefica", img: "https://i.pinimg.com/736x/2f/83/9a/2f839a9b9b03a70f4b9feb812e8cf03a.jpg" },
+		  { name: "Yzma", img: "https://i.pinimg.com/1200x/20/47/ae/2047ae86c81bd2b6e1ab00797a8584a8.jpg" },
+		  { name: "Simba", img: "https://i.pinimg.com/736x/b1/90/89/b19089d874786ae283c4ba7f9ebed795.jpg" },
+		  { name: "Aurora", img: "https://i.pinimg.com/736x/b1/75/fb/b175fbb3b147ea7a9f74ef16b7e4abd3.jpg" },
+		  { name: "Kuzco", img: "https://i.pinimg.com/736x/75/cf/32/75cf32d90c87209bcf2c3e77be26117b.jpg" },
+		  { name: "Kratos", img: "https://i.pinimg.com/1200x/c7/92/1e/c7921e20927ce5aea55d465a3685a055.jpg" },
+		  { name: "Ghostface", img: "https://i.pinimg.com/736x/a3/14/c4/a314c4596b6c929a375ff3355e2360ca.jpg" },
+		  { name: "Lloyd", img: "https://i.pinimg.com/736x/a9/75/93/a9759377f535489205ee8458a508db79.jpg" },
+		  { name: "Kai", img: "https://i.pinimg.com/1200x/ea/9d/97/ea9d97dd2a54c3d0aa13ca67e0b4864d.jpg" },
+		  { name: "Sensei WU", img: " https://i.pinimg.com/1200x/65/7e/86/657e8647544d634ac721a0ee06a55e6c.jpg" },
+		  { name: "Po", img: "https://i.pinimg.com/736x/fb/99/a5/fb99a5c7ce5b313ed1c4e71ee0260a9b.jpg" },
+		  { name: "Shifu", img: "https://i.pinimg.com/736x/c8/90/f3/c890f3dcf69372cd5ef3c68aad711bb9.jpg" },
+		  { name: "Mimikyu", img: "https://i.pinimg.com/1200x/7f/c3/98/7fc3984347358acee07cf91f2ed1d0ff.jpg" },
+		  { name: "Clover", img: "https://i.pinimg.com/1200x/b3/77/09/b37709f9e5c1206630286eae9bbf748d.jpg" },
+		  { name: "Sam", img: "https://i.pinimg.com/736x/e4/2c/11/e42c119ef2567059407c05275aba27ca.jpg" },
+		  { name: "Alex TS", img: "https://i.pinimg.com/1200x/31/0a/1e/310a1ecf6798fecaec781fe314ace8c0.jpg" },
+		  { name: "Ben 10", img: "https://i.pinimg.com/736x/b3/c8/eb/b3c8ebedc4123fa33f6e72ff2deff109.jpg" },
+          { name: "Gwen Tennyson", img: "https://i.pinimg.com/736x/f7/59/57/f75957bd5bad8195e2322e58de3f8119.jpg" }
+        ];
+];
+
+const PROTOCOL_DESCRIPTIONS = {
+    'PURGE': 'EPURAZIONE CRITICA: Lancio dei dadi a eliminazione immediata.',
+    'TRIUMVIRATO': 'TRIUMVIRATO: I vincitori dei dadi scelgono i condannati.',
+    'RISCHIO': 'VALUTAZIONE SOCIALE: Votazione basata sul rating delle stelle.',
+    'DEMOCRAZIA': 'SEGMENTAZIONE DEMOCRATICA: Votazione classica a maggioranza.',
+    'CATENA': 'CATENA DISTOPICA: Sequenza di salvataggi a catena.'
+};
+
+const HeartbeatWave = ({ fast = false, color = null }) => {
+    const defaultColor = fast ? 'text-red-500' : 'text-emerald-400';
+    return (
+        <svg viewBox="0 0 100 20" className={`w-full h-10 ${color || defaultColor} filter drop-shadow-[0_0_15px_currentColor]`}>
+            <polyline
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="5"
+                points="0,10 10,10 15,10 20,5 25,15 30,10 40,10 45,2 50,18 55,10 65,10 70,10 75,10 80,10 100,10"
+                strokeDasharray="100"
+                strokeDashoffset="100"
+                className={fast ? "animate-[heartbeat_0.4s_linear_infinite]" : "animate-[heartbeat_1.8s_linear_infinite]"}
+            />
+        </svg>
+    );
+};
+
+export default function App() {
+    const [user, setUser] = useState(null);
+    const [view, setView] = useState('login'); 
+    const [roomId, setRoomId] = useState('');
+    const [nickname, setNickname] = useState('');
+    const [roomData, setRoomData] = useState(null);
+    const [selectedTarget, setSelectedTarget] = useState(null);
+    const [socialSecondaryTarget, setSocialSecondaryTarget] = useState(null);
+    const [showTransition, setShowTransition] = useState(false);
+    
+    const [config, setConfig] = useState({
+        totalPlayers: 16,
+        hasTeams: false,
+        glitchReentry: true
+    });
+
+    useEffect(() => {
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+        const unsub = onAuthStateChanged(auth, setUser);
+        return () => unsub();
+    }, []);
+
+    useEffect(() => {
+        if (!roomId || !user) return;
+        const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId), (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                if (roomData && roomData.phase !== data.phase) {
+                    setShowTransition(true);
+                    setTimeout(() => setShowTransition(false), 2000);
+                }
+                setRoomData(data);
+                if (data.status === 'lobby' && view !== 'lobby') setView('lobby');
+                if (data.status === 'playing' && view !== 'game') setView('game');
+                if (data.status === 'finished' && view !== 'ranking') setView('ranking');
+            }
+        });
+        return () => unsub();
+    }, [roomId, view, user]);
+
+    const generateRoomId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    const updateRoom = async (updates) => {
+        if (!user || !roomId) return;
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId), updates);
+    };
+
+    const createRoom = async () => {
+        const newId = generateRoomId();
+        const initialRoom = {
+            id: newId,
+            hostId: user.uid,
+            status: 'config',
+            players: [],
+            episode: 0,
+            phase: 'setup',
+            config: config,
+            logs: ["SISTEMA INIZIALIZZATO. Attesa configurazione host..."],
+            bgIndex: Math.floor(Math.random() * BACKGROUNDS.length),
+            currentRollerIndex: -1,
+            readyUids: [],
+            triumviri: [], 
+            candidates: [], 
+            currentSelectorIndex: -1,
+            votes: {}, 
+            ceremonyOrder: [],
+            ceremonyRevealedCount: 0,
+            eliminatedUid: '',
+            savedInChainUids: [],
+            currentChainSaverUid: '',
+            isSpareggio: false,
+            eliminatedHistory: [], // Lista cronologica per classifica finale
+            finalDuel: {
+                scores: {},
+                lastRolls: {}
+            }
+        };
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', newId), initialRoom);
+        setRoomId(newId);
+        setView('config');
+    };
+
+    const joinRoom = async (id) => {
+        if (!id) return;
+        setRoomId(id.toUpperCase());
+        setView('lobby');
+    };
+
+    const pickCharacter = async (char) => {
+        if (!roomData || roomData.players.find(p => p.character === char.name)) return;
+        const newPlayer = {
+            uid: user.uid,
+            nickname: nickname || "Soggetto_Ignoto",
+            character: char.name,
+            img: char.img,
+            isBot: false,
+            status: 'active',
+            credits: 100,
+            stars: 5.0,
+            relationships: {}, 
+            allies: [],
+            interactionDone: false,
+            lastRoll: 0,
+            isImmune: false,
+            isCandidate: false,
+            hasVoted: false,
+            isSpareggiante: false
+        };
+        const updated = [...roomData.players.filter(p => p.uid !== user.uid), newPlayer];
+        await updateRoom({ players: updated });
+    };
+
+    const startGame = async () => {
+        let currentPlayers = [...roomData.players];
+        const remaining = roomData.config.totalPlayers - currentPlayers.length;
+        const available = ROSTER.filter(c => !currentPlayers.find(p => p.character === c.name));
+        
+        for (let i = 0; i < remaining; i++) {
+            const char = available.splice(Math.floor(Math.random() * available.length), 1)[0];
+            currentPlayers.push({
+                uid: `bot_${i}_${Date.now()}`,
+                nickname: char.name,
+                character: char.name,
+                img: char.img,
+                isBot: true,
+                status: 'active',
+                credits: 100,
+                stars: 5.0,
+                relationships: {},
+                allies: [],
+                interactionDone: false,
+                lastRoll: 0,
+                isImmune: false,
+                isCandidate: false,
+                hasVoted: false,
+                isSpareggiante: false
+            });
+        }
+        await updateRoom({ status: 'playing', players: currentPlayers, episode: 1, phase: 'feed', readyUids: [] });
+    };
+
+    const toggleReady = async () => {
+        const isReady = roomData.readyUids.includes(user.uid);
+        const updated = isReady ? roomData.readyUids.filter(id => id !== user.uid) : [...roomData.readyUids, user.uid];
+        await updateRoom({ readyUids: updated });
+    };
+
+    const handleSocialAction = async (type) => {
+        const myPlayer = roomData.players.find(p => p.uid === user.uid);
+        if (!myPlayer || myPlayer.interactionDone) return;
+
+        let players = [...roomData.players];
+        let log = "";
+        const chance = Math.random();
+
+        const updateRel = (voterUid, targetUid, amount) => {
+            const voter = players.find(p => p.uid === voterUid);
+            if (!voter) return;
+            if (!voter.relationships) voter.relationships = {};
+            let current = voter.relationships[targetUid] || 0;
+            voter.relationships[targetUid] = Math.min(5, Math.max(-5, current + amount));
+        };
+
+        if (type === 'amicizia') {
+            if (chance > 0.4) {
+                updateRel(user.uid, selectedTarget.uid, 1);
+                updateRel(selectedTarget.uid, user.uid, 1);
+                log = `${myPlayer.nickname} ha stabilito un legame con ${selectedTarget.nickname}.`;
+            } else {
+                log = `${selectedTarget.nickname} ha respinto la sincronizzazione di ${myPlayer.nickname}.`;
+            }
+        } else if (type === 'denuncia') {
+            if (chance > 0.5) {
+                const witnesses = players.filter(p => p.isBot && p.uid !== user.uid && p.uid !== selectedTarget.uid).sort(() => 0.5 - Math.random()).slice(0, 2);
+                witnesses.forEach(w => updateRel(w.uid, selectedTarget.uid, -1));
+                log = `PARAMETRI INSTABILI: I dati sociali di ${selectedTarget.nickname} sono stati corrotti.`;
+            } else {
+                updateRel(selectedTarget.uid, user.uid, -1);
+                log = `DENUNCIA RESPINTA: ${selectedTarget.nickname} ha intercettato l'attacco di ${myPlayer.nickname}.`;
+            }
+        } else if (type === 'zizzania') {
+            if (!socialSecondaryTarget || socialSecondaryTarget === 'selecting') return;
+            if (chance > 0.45) {
+                updateRel(selectedTarget.uid, socialSecondaryTarget.uid, -1);
+                updateRel(socialSecondaryTarget.uid, selectedTarget.uid, -1);
+                log = `VIRUS INIETTATO: Conflitto generato tra ${selectedTarget.nickname} e ${socialSecondaryTarget.nickname}.`;
+            } else {
+                updateRel(selectedTarget.uid, user.uid, -1);
+                log = `MANOVRA FALLITA: ${selectedTarget.nickname} ha individuato l'origine del virus.`;
+            }
+        } else if (type === 'alleanza') {
+            if (chance > 0.5) {
+                const myIdx = players.findIndex(p => p.uid === user.uid);
+                players[myIdx].allies = [...(players[myIdx].allies || []), selectedTarget.uid];
+                log = `ALLEANZA FORMATA: ${selectedTarget.nickname} seguirà il tuo protocollo di voto.`;
+            } else {
+                log = `ALLEANZA RIFIUTATA: ${selectedTarget.nickname} preferisce l'autonomia sistemica.`;
+            }
+        }
+
+        players = players.map(p => p.uid === user.uid ? { ...p, interactionDone: true } : p);
+        await updateRoom({ players, logs: arrayUnion(log) });
+        setSelectedTarget(null);
+        setSocialSecondaryTarget(null);
+    };
+
+    const startRollingSequence = async () => {
+        const players = roomData.players.map(p => ({ ...p, lastRoll: 0 }));
+        await updateRoom({ players, currentRollerIndex: 0 });
+    };
+
+    const rollDices = async () => {
+        let players = [...roomData.players];
+        const active = roomData.isSpareggio 
+            ? roomData.players.filter(p => p.isSpareggiante) 
+            : roomData.players.filter(p => p.status === 'active');
+            
+        const currentRoller = active[roomData.currentRollerIndex];
+        if (!currentRoller) return;
+
+        const roll = Math.floor(Math.random() * 10) + 1;
+        players = players.map(p => p.uid === currentRoller.uid ? { ...p, lastRoll: roll } : p);
+
+        const nextIndex = roomData.currentRollerIndex + 1;
+        if (nextIndex >= active.length) {
+            await updateRoom({ players, currentRollerIndex: -2 }); 
+        } else {
+            await updateRoom({ players, currentRollerIndex: nextIndex });
+        }
+    };
+
+    useEffect(() => {
+        if (roomData?.status === 'playing' && roomData.currentRollerIndex >= 0 && roomData.hostId === user.uid && roomData.phase !== 'final_duel') {
+            const active = roomData.isSpareggio ? roomData.players.filter(p => p.isSpareggiante) : roomData.players.filter(p => p.status === 'active');
+            const currentRoller = active[roomData.currentRollerIndex];
+            if (currentRoller && currentRoller.isBot) {
+                setTimeout(async () => {
+                    await rollDices();
+                }, 800);
+            }
+        }
+    }, [roomData?.currentRollerIndex, roomData?.phase]);
+
+    const processChallenge = async () => {
+        const active = roomData.isSpareggio ? roomData.players.filter(p => p.isSpareggiante) : roomData.players.filter(p => p.status === 'active');
+        
+        if (active.every(p => p.lastRoll === 0)) return;
+
+        const rolls = active.map(p => p.lastRoll);
+        const maxRoll = Math.max(...rolls);
+        const minRoll = Math.min(...rolls);
+        const winners = active.filter(p => p.lastRoll === maxRoll);
+        const losers = active.filter(p => p.lastRoll === minRoll);
+
+        if (roomData.protocol === 'CATENA') {
+            const firstSaver = winners[Math.floor(Math.random() * winners.length)];
+            await updateRoom({ phase: 'catena_distopica', currentChainSaverUid: firstSaver.uid, savedInChainUids: [], logs: arrayUnion(`CATENA DISTOPICA: ${firstSaver.nickname} riceve il controllo primario.`) });
+            return;
+        }
+
+        if (roomData.protocol === 'TRIUMVIRATO') {
+            const sorted = [...active].sort((a,b) => b.lastRoll - a.lastRoll);
+            let winnerCount = 3;
+            if (active.length === 5) winnerCount = 2;
+            if (active.length <= 4) winnerCount = 1;
+            
+            const selectedWinners = sorted.slice(0, winnerCount).map(p => p.uid);
+            await updateRoom({ triumviri: selectedWinners, phase: 'triumviri_selection', currentSelectorIndex: 0, logs: arrayUnion(`PROTOCOLLO TRIUMVIRATO: ${winnerCount} vincitori pronti alla selezione.`) });
+            return;
+        }
+
+        if (roomData.isSpareggio) {
+             const eliminated = losers[Math.floor(Math.random() * losers.length)];
+             await updateRoom({ eliminatedUid: eliminated.uid, ceremonyOrder: [eliminated.uid], phase: 'ceremony', ceremonyRevealedCount: 0, isSpareggio: false });
+             return;
+        }
+
+        if (roomData.protocol === 'PURGE') {
+            const eliminated = losers[Math.floor(Math.random() * losers.length)];
+            await updateRoom({ eliminatedUid: eliminated.uid, ceremonyOrder: [eliminated.uid], phase: 'ceremony', ceremonyRevealedCount: 0 });
+        } else {
+            let candidates = [];
+            if (roomData.protocol === 'DEMOCRAZIA') {
+                candidates = roomData.players.filter(p => !winners.find(w => w.uid === p.uid));
+            } else if (roomData.protocol === 'RISCHIO') {
+                candidates = [...active].sort((a,b) => a.lastRoll - b.lastRoll).slice(0, 3);
+            }
+            let players = roomData.players.map(p => ({ ...p, isImmune: winners.find(w => w.uid === p.uid) ? true : false, isCandidate: candidates.find(c => c.uid === p.uid) ? true : false, lastRoll: 0, hasVoted: false, isSpareggiante: false }));
+            await updateRoom({ players, phase: 'voting', currentRollerIndex: -1, readyUids: [], votes: {} });
+        }
+    };
+
+    const selectTriumviratoCandidate = async (targetUid) => {
+        const activePlayers = roomData.players.filter(p => p.status === 'active');
+        const activeCount = activePlayers.length;
+        const triumvirUid = roomData.triumviri[roomData.currentSelectorIndex];
+        const selector = roomData.players.find(p => p.uid === triumvirUid);
+        const target = roomData.players.find(p => p.uid === targetUid);
+        
+        if (!target) return;
+
+        const log = `${selector.nickname} ha scelto ${target.nickname}.`;
+        const nextIndex = roomData.currentSelectorIndex + 1;
+
+        if (activeCount <= 4) {
+            await updateRoom({ eliminatedUid: targetUid, ceremonyOrder: [targetUid], phase: 'ceremony', ceremonyRevealedCount: 0, logs: arrayUnion(log) });
+            return;
+        }
+
+        const players = roomData.players.map(p => p.uid === targetUid ? { ...p, isCandidate: true } : p);
+        if (nextIndex >= roomData.triumviri.length) {
+            const finalPlayers = players.map(p => ({ ...p, isImmune: roomData.triumviri.includes(p.uid), hasVoted: false, lastRoll: 0 }));
+            await updateRoom({ players: finalPlayers, phase: 'voting', currentSelectorIndex: -1, logs: arrayUnion(log) });
+        } else {
+            await updateRoom({ players, currentSelectorIndex: nextIndex, logs: arrayUnion(log) });
+        }
+    };
+
+    useEffect(() => {
+        if (roomData?.phase === 'triumviri_selection' && roomData.hostId === user.uid) {
+            const selectorUid = roomData.triumviri[roomData.currentSelectorIndex];
+            const selector = roomData.players.find(p => p.uid === selectorUid);
+            if (selector?.isBot) {
+                setTimeout(async () => {
+                    const eligible = roomData.players.filter(p => !p.isCandidate && !roomData.triumviri.includes(p.uid) && p.status === 'active');
+                    if (eligible.length > 0) {
+                        const target = eligible[Math.floor(Math.random() * eligible.length)];
+                        if (target) await selectTriumviratoCandidate(target.uid);
+                    }
+                }, 1500);
+            }
+        }
+    }, [roomData?.phase, roomData?.currentSelectorIndex]);
+
+    const handleChainSave = async (targetUid) => {
+        let savedInChainUids = [...(roomData.savedInChainUids || []), roomData.currentChainSaverUid];
+        let currentPlayers = roomData.players;
+        let unsavedPlayers = currentPlayers.filter(p => !savedInChainUids.includes(p.uid) && p.uid !== targetUid && p.status === 'active');
+        
+        if (unsavedPlayers.length === 1) {
+            const eliminatedUid = unsavedPlayers[0].uid;
+            await updateRoom({ phase: 'ceremony', ceremonyOrder: [targetUid, eliminatedUid], ceremonyRevealedCount: 0, eliminatedUid, savedInChainUids: [], logs: arrayUnion(`CATENA: ${currentPlayers.find(p => p.uid === eliminatedUid).nickname} disconnesso.`) });
+        } else {
+            await updateRoom({ savedInChainUids, currentChainSaverUid: targetUid, logs: arrayUnion(`${roomData.players.find(p => p.uid === targetUid).nickname} ha preso il controllo.`) });
+        }
+    };
+
+    useEffect(() => {
+        if (roomData?.phase === 'catena_distopica' && roomData.hostId === user.uid) {
+            const saver = roomData.players.find(p => p.uid === roomData.currentChainSaverUid);
+            if (saver?.isBot) {
+                setTimeout(async () => {
+                    const savedUids = roomData.savedInChainUids || [];
+                    const eligible = roomData.players.filter(p => !savedUids.includes(p.uid) && p.uid !== saver.uid && p.status === 'active');
+                    if (eligible.length > 0) {
+                        const target = eligible[Math.floor(Math.random() * eligible.length)];
+                        await handleChainSave(target.uid);
+                    }
+                }, 1500);
+            }
+        }
+    }, [roomData?.phase, roomData?.currentChainSaverUid]);
+
+    const submitVote = async (targetUid, value = 1) => {
+        if (!user) return;
+        const newVotes = { ...roomData.votes };
+        if (roomData.protocol === 'RISCHIO') {
+            if (!newVotes[user.uid]) newVotes[user.uid] = {};
+            newVotes[user.uid][targetUid] = value;
+        } else {
+            newVotes[user.uid] = targetUid;
+        }
+        await updateRoom({ votes: newVotes });
+    };
+
+    const processVotingResult = async () => {
+        let players = [...roomData.players];
+        let currentVotesMap = { ...roomData.votes };
+        const candidates = players.filter(p => p.isCandidate);
+        
+        const voterFilter = (p) => {
+            if (p.status !== 'active') return false;
+            if (roomData.protocol === 'RISCHIO') return !p.isCandidate && p.isBot;
+            if (roomData.protocol === 'DEMOCRAZIA') return p.isBot;
+            return !p.isCandidate && p.isBot;
+        };
+        
+        const botVoters = players.filter(voterFilter);
+
+        botVoters.forEach(v => {
+            if (roomData.protocol === 'RISCHIO') {
+                candidates.forEach(c => {
+                   const key = `${v.uid}_${c.uid}`;
+                   let stars = Math.min(5, Math.max(1, 3 + (Math.random() - 0.5) * 4));
+                   currentVotesMap[key] = stars; 
+                });
+            } else {
+                const possibleTargets = candidates.filter(c => c.uid !== v.uid);
+                if (possibleTargets.length > 0) {
+                    const target = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                    if (target) currentVotesMap[v.uid] = target.uid;
+                }
+            }
+        });
+
+        let finalTally = {};
+        if (roomData.protocol === 'RISCHIO') {
+            candidates.forEach(c => {
+                let allVals = [];
+                Object.keys(currentVotesMap).forEach(k => {
+                   const voter = players.find(p => p.uid === k);
+                   if (voter && !voter.isBot && !voter.isCandidate) {
+                       if (currentVotesMap[k][c.uid]) allVals.push(currentVotesMap[k][c.uid]);
+                   }
+                });
+                botVoters.forEach(v => {
+                    const key = `${v.uid}_${c.uid}`;
+                    allVals.push(currentVotesMap[key] || 3);
+                });
+                const avg = allVals.length > 0 ? (allVals.reduce((a,b)=>a+b,0) / allVals.length).toFixed(1) : "3.0";
+                finalTally[c.uid] = avg;
+            });
+        } else {
+            Object.values(currentVotesMap).forEach(v => { if (typeof v === 'string') finalTally[v] = (finalTally[v] || 0) + 1; });
+        }
+
+        let results = candidates.map(c => ({ uid: c.uid, score: parseFloat(finalTally[c.uid] || 0), tieBreaker: Math.random() }))
+            .sort((a,b) => roomData.protocol === 'RISCHIO' ? b.score - a.score : a.score - b.score);
+
+        if (roomData.protocol === 'DEMOCRAZIA' && results.length > 1 && results[0].score === results[1].score && results[0].score > 0) {
+            const tiedScore = results[0].score;
+            const tiedUids = results.filter(r => r.score === tiedScore).map(r => r.uid);
+            const updatedPlayers = roomData.players.map(p => ({ 
+                ...p, 
+                isSpareggiante: tiedUids.includes(p.uid), 
+                lastRoll: 0 
+            }));
+            await updateRoom({ 
+                players: updatedPlayers, 
+                isSpareggio: true, 
+                currentRollerIndex: 0, 
+                phase: 'challenge', 
+                logs: arrayUnion(`PAREGGIO RILEVATO (${tiedScore} voti). Inizio spareggio critico.`) 
+            });
+            return;
+        }
+
+        const ceremonyOrder = results.map(r => r.uid);
+        const eliminatedUid = ceremonyOrder[ceremonyOrder.length - 1];
+        await updateRoom({ phase: 'ceremony', ceremonyOrder, ceremonyRevealedCount: 0, eliminatedUid, votes: finalTally });
+    };
+
+    const nextCeremonyStep = async () => {
+        if (roomData.ceremonyRevealedCount < roomData.ceremonyOrder.length - 1) {
+            await updateRoom({ ceremonyRevealedCount: roomData.ceremonyRevealedCount + 1 });
+        } else {
+            const eliminatedPlayer = roomData.players.find(p => p.uid === roomData.eliminatedUid);
+            const entry = {
+                ...eliminatedPlayer,
+                eliminatedIn: roomData.protocol || 'SPAREGGIO'
+            };
+
+            let remainingPlayers = roomData.players.filter(p => p.uid !== roomData.eliminatedUid).map(p => ({ ...p, isCandidate: false, isImmune: false, hasVoted: false, lastRoll: 0, interactionDone: false, isSpareggiante: false }));
+            
+            // SE RIMANGONO SOLO 2 CONCORRENTI -> SFIDA FINALE
+            if (remainingPlayers.length === 2) {
+                const initScores = {};
+                remainingPlayers.forEach(p => initScores[p.uid] = 0);
+                
+                await updateRoom({ 
+                    players: remainingPlayers, 
+                    eliminatedHistory: arrayUnion(entry),
+                    phase: 'final_duel',
+                    finalDuel: { scores: initScores, lastRolls: {} },
+                    logs: arrayUnion("SFIDA FINALE ATTIVATA: I due sopravvissuti si sfideranno al meglio di 5.")
+                });
+            } else {
+                await updateRoom({ 
+                    players: remainingPlayers, 
+                    eliminatedHistory: arrayUnion(entry),
+                    phase: 'feed', 
+                    episode: roomData.episode + 1, 
+                    ceremonyOrder: [], 
+                    ceremonyRevealedCount: 0, eliminatedUid: '', readyUids: [], votes: {}, 
+                    triumviri: [], isSpareggio: false, currentRollerIndex: -1 
+                });
+            }
+        }
+    };
+
+    // --- LOGICA SFIDA FINALE EVOLUTA ---
+    const rollFinalDice = async (targetUid) => {
+        const roll = Math.floor(Math.random() * 10) + 1;
+        await updateRoom({ [`finalDuel.lastRolls.${targetUid}`]: roll });
+    };
+
+    // Effetto per il lancio automatico dei bot nel finale
+    useEffect(() => {
+        if (roomData?.phase === 'final_duel' && roomData.hostId === user.uid) {
+            const bot = roomData.players.find(p => p.isBot);
+            if (bot && !roomData.finalDuel.lastRolls[bot.uid]) {
+                setTimeout(() => {
+                    rollFinalDice(bot.uid);
+                }, 2000); // Ritardo per realismo
+            }
+        }
+    }, [roomData?.phase, roomData?.finalDuel?.lastRolls]);
+
+    const confirmFinalDuelScore = async () => {
+        const finalists = roomData.players;
+        const rolls = roomData.finalDuel.lastRolls;
+        const u1 = finalists[0].uid;
+        const u2 = finalists[1].uid;
+
+        if (rolls[u1] === rolls[u2]) {
+            await updateRoom({ 
+                "finalDuel.lastRolls": {}, 
+                logs: arrayUnion("PAREGGIO NEI DADI! Si rilancia...") 
+            });
+            return;
+        }
+
+        const winnerUid = rolls[u1] > rolls[u2] ? u1 : u2;
+        const newScores = { ...roomData.finalDuel.scores };
+        newScores[winnerUid]++;
+
+        if (newScores[winnerUid] >= 3) {
+            const loser = finalists.find(p => p.uid !== winnerUid);
+            const entry = { ...loser, eliminatedIn: 'DUELLO FINALE' };
+            await updateRoom({ 
+                status: 'finished',
+                "finalDuel.scores": newScores,
+                winnerUid: winnerUid,
+                eliminatedHistory: arrayUnion(entry),
+                logs: arrayUnion(`${roomData.players.find(p=>p.uid===winnerUid).nickname} VINCE L'ALGORITMO!`)
+            });
+        } else {
+            await updateRoom({ 
+                "finalDuel.scores": newScores,
+                "finalDuel.lastRolls": {}, 
+                logs: arrayUnion(`Punto assegnato a ${roomData.players.find(p=>p.uid===winnerUid).nickname}!`)
+            });
+        }
+    };
+
+    const abandonGame = () => {
+        setRoomId('');
+        setView('login');
+    };
+
+    if (view === 'login') return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-mono text-emerald-400">
+            <style>{`@keyframes heartbeat { to { stroke-dashoffset: 0; } }`}</style>
+            <div className="max-w-md w-full border-2 border-emerald-500/30 p-10 bg-black shadow-[0_0_60px_rgba(16,185,129,0.1)] rounded-xl font-bold">
+                <h1 className="text-5xl font-black mb-2 text-center text-white tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">L'Algoritmo</h1>
+                <p className="text-[10px] text-center mb-10 opacity-50 tracking-[0.3em] uppercase">Simulatore Dystopico 2.6</p>
+                <input type="text" placeholder="DATI_NICKNAME" className="w-full bg-slate-900 border border-emerald-500/50 p-4 mb-6 rounded outline-none focus:border-emerald-400 uppercase font-bold" value={nickname} onChange={e => setNickname(e.target.value)} />
+                <div className="space-y-4">
+                    <button onClick={createRoom} className="w-full bg-emerald-600 text-black font-black py-4 rounded hover:bg-emerald-400 transition-all uppercase">Crea Istanza</button>
+                    <div className="flex gap-2">
+                        <input type="text" placeholder="CODICE" className="flex-1 bg-slate-900 border border-emerald-500/30 p-3 rounded text-sm outline-none uppercase font-bold" value={roomId} onChange={e => setRoomId(e.target.value.toUpperCase())} />
+                        <button onClick={() => joinRoom(roomId)} className="bg-slate-800 px-6 font-bold border border-emerald-500/30 uppercase">Entra</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (view === 'config') return (
+        <div className="min-h-screen bg-slate-950 text-emerald-400 p-10 font-mono flex items-center justify-center font-bold">
+            <div className="max-w-xl w-full border border-emerald-500/30 p-10 bg-black rounded shadow-2xl">
+                <h2 className="text-2xl font-black mb-8 border-b border-emerald-500/30 pb-4 uppercase tracking-widest font-bold">Configurazione</h2>
+                <div className="space-y-8">
+                    <div>
+                        <label className="text-xs opacity-50 block mb-2 uppercase tracking-tighter font-bold">Campione Soggetti ({config.totalPlayers})</label>
+                        <input type="range" min="8" max="40" className="w-full accent-emerald-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer" value={config.totalPlayers} onChange={e => setConfig({...config, totalPlayers: parseInt(e.target.value)})} />
+                    </div>
+                    <button onClick={() => updateRoom({ status: 'lobby', config })} className="w-full bg-emerald-600 text-black py-4 font-black hover:bg-emerald-400 uppercase font-bold">Genera Lobby</button>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (view === 'lobby') {
+        const myPlayer = roomData?.players.find(p => p.uid === user.uid);
+        return (
+            <div className="min-h-screen bg-slate-950 text-emerald-400 p-8 font-mono flex gap-8">
+                <div className="w-64 border-r border-emerald-900/50 pr-6 flex flex-col font-bold">
+                    <h3 className="text-sm font-bold mb-4 flex items-center gap-2 uppercase tracking-widest"><LucideUsers size={16}/> Connessi</h3>
+                    <div className="space-y-2 flex-1 overflow-y-auto font-bold">
+                        {roomData?.players.map(p => (
+                            <div key={p.uid} className="flex items-center gap-2 p-2 bg-slate-900/50 border border-emerald-500/20 rounded font-bold">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-xs truncate uppercase font-bold">{p.nickname}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-8 p-4 border border-emerald-500/20 rounded bg-emerald-500/5 text-center font-bold">
+                        <div className="text-[10px] opacity-50 uppercase mb-1">ID Accesso</div>
+                        <div className="text-2xl font-black text-white">{roomId}</div>
+                    </div>
+                </div>
+                <div className="flex-1 overflow-y-auto pr-4 font-bold">
+                    <h2 className="text-4xl font-black mb-8 tracking-tighter uppercase text-white border-b border-white/10 pb-4">Scelta Avatar</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-20 font-bold">
+                        {ROSTER.map(char => {
+                            const isTaken = roomData?.players.find(p => p.character === char.name);
+                            return (
+                                <div key={char.name} onClick={() => !isTaken && pickCharacter(char)} className={`relative border-2 transition-all cursor-pointer group ${isTaken ? 'border-red-600 opacity-40 grayscale' : 'border-emerald-500/30 hover:border-emerald-400'}`}>
+                                    <img src={char.img} className="w-full aspect-[3/4] object-cover font-bold" />
+                                    <div className="p-2 bg-black text-[10px] uppercase font-bold truncate">{char.name}</div>
+                                    {isTaken && <div className="absolute inset-0 bg-black/60 flex items-center justify-center font-black text-red-500 uppercase tracking-widest text-[10px]">Occupato</div>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="fixed bottom-0 left-64 right-0 p-6 bg-black/95 border-t border-emerald-500/30 flex justify-between items-center z-50 backdrop-blur-md">
+                        <div className="flex items-center gap-6 font-bold">
+                            {myPlayer ? (
+                                <div className="flex items-center gap-4 font-bold">
+                                    <div className="relative">
+                                        <img src={myPlayer.img} className="w-14 h-14 rounded border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                        <div className="absolute -top-1 -left-1 bg-blue-600 p-0.5 rounded-full"><LucideCrown size={12}/></div>
+                                    </div>
+                                    <div className="font-black text-white text-xl uppercase tracking-tighter font-bold">{myPlayer.character}</div>
+                                </div>
+                            ) : <div className="text-yellow-500 animate-pulse uppercase text-xs font-black font-bold">In attesa...</div>}
+                        </div>
+                        {roomData?.hostId === user.uid && <button onClick={startGame} className="bg-emerald-600 text-black px-12 py-4 rounded font-black hover:bg-emerald-400 transition-all uppercase">Inizia Partita</button>}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (view === 'game') {
+        const myPlayer = roomData.players.find(p => p.uid === user.uid);
+        const isHost = roomData.hostId === user.uid;
+        
+        // UI SFIDA FINALE EVOLUTA
+        if (roomData.phase === 'final_duel') {
+            const finalists = roomData.players;
+            const rolls = roomData.finalDuel.lastRolls || {};
+            const bothRolled = rolls[finalists[0].uid] && rolls[finalists[1].uid];
+
+            return (
+                <div className="min-h-screen bg-black text-emerald-400 font-mono flex flex-col font-bold">
+                    <div className="absolute top-6 left-6 z-50">
+                        <button onClick={abandonGame} className="flex items-center gap-2 bg-red-600/20 border border-red-600/50 text-red-500 px-4 py-2 rounded font-black text-xs hover:bg-red-600 hover:text-white transition-all uppercase font-bold">
+                            <LucideLogOut size={16}/> Abbandona Partita
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center p-10 font-bold space-y-12">
+                        <div className="text-5xl font-black text-white uppercase tracking-[0.2em] text-center animate-pulse">DUELLO ULTIMO</div>
+                        
+                        <div className="flex justify-around w-full max-w-5xl items-center gap-6">
+                            {/* FINALISTA 1 (Cyan/Blu) */}
+                            <div className="flex flex-col items-center space-y-6 flex-1">
+                                <div className={`relative border-8 rounded-2xl overflow-hidden transition-all duration-500 ${roomData.finalDuel.scores[finalists[0].uid] >= 3 ? 'border-yellow-500 scale-105 shadow-[0_0_50px_rgba(234,179,8,0.5)]' : 'border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.3)]'}`}>
+                                    <img src={finalists[0].img} className="w-64 h-80 object-cover" />
+                                    <div className="absolute top-2 right-2 bg-cyan-600 text-white px-4 py-2 rounded font-black text-3xl shadow-lg border border-white/20">
+                                        {roomData.finalDuel.scores[finalists[0].uid] || 0}
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-cyan-400 uppercase tracking-widest">{finalists[0].nickname}</div>
+                                
+                                <div className={`w-32 h-32 rounded-full border-4 flex items-center justify-center transition-all duration-300 ${rolls[finalists[0].uid] ? 'border-cyan-400 bg-cyan-400/10' : 'border-white/10'}`}>
+                                    {rolls[finalists[0].uid] ? (
+                                        <span className="text-5xl font-black text-white">{rolls[finalists[0].uid]}</span>
+                                    ) : (
+                                        finalists[0].uid === user.uid ? (
+                                            <button onClick={() => rollFinalDice(finalists[0].uid)} className="text-[10px] font-black uppercase text-cyan-400 animate-bounce">
+                                                Lancia!
+                                            </button>
+                                        ) : <LucideLoader2 className="animate-spin text-white/20" />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="text-4xl font-black text-white opacity-20 italic font-bold">VS</div>
+
+                            {/* FINALISTA 2 (Rosso/Magenta) */}
+                            <div className="flex flex-col items-center space-y-6 flex-1">
+                                <div className={`relative border-8 rounded-2xl overflow-hidden transition-all duration-500 ${roomData.finalDuel.scores[finalists[1].uid] >= 3 ? 'border-yellow-500 scale-105 shadow-[0_0_50px_rgba(234,179,8,0.5)]' : 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'}`}>
+                                    <img src={finalists[1].img} className="w-64 h-80 object-cover" />
+                                    <div className="absolute top-2 right-2 bg-red-600 text-white px-4 py-2 rounded font-black text-3xl shadow-lg border border-white/20">
+                                        {roomData.finalDuel.scores[finalists[1].uid] || 0}
+                                    </div>
+                                </div>
+                                <div className="text-2xl font-black text-red-400 uppercase tracking-widest">{finalists[1].nickname}</div>
+                                
+                                <div className={`w-32 h-32 rounded-full border-4 flex items-center justify-center transition-all duration-300 ${rolls[finalists[1].uid] ? 'border-red-400 bg-red-400/10' : 'border-white/10'}`}>
+                                    {rolls[finalists[1].uid] ? (
+                                        <span className="text-5xl font-black text-white">{rolls[finalists[1].uid]}</span>
+                                    ) : (
+                                        finalists[1].uid === user.uid ? (
+                                            <button onClick={() => rollFinalDice(finalists[1].uid)} className="text-[10px] font-black uppercase text-red-400 animate-bounce">
+                                                Lancia!
+                                            </button>
+                                        ) : <LucideLoader2 className="animate-spin text-white/20" />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {isHost && bothRolled && (
+                            <button onClick={confirmFinalDuelScore} className="bg-yellow-500 text-black px-16 py-5 rounded-full font-black text-xl hover:bg-yellow-400 transition-all shadow-[0_0_30px_rgba(234,179,8,0.4)] uppercase">
+                                Conferma Risultato
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- RESTO DEL GIOCO ---
+        const humanPlayers = roomData.players.filter(p => !p.isBot);
+        const isReady = roomData.readyUids.includes(user.uid);
+        const allHumansReady = humanPlayers.every(p => roomData.readyUids.includes(p.uid));
+        
+        let subjectsToShow = roomData.players.filter(p => p.status === 'active');
+        if (roomData.isSpareggio) {
+            subjectsToShow = roomData.players.filter(p => p.isSpareggiante);
+        } else if (roomData.phase === 'challenge') {
+            subjectsToShow = [...roomData.players.filter(p => p.status === 'active')].sort((a, b) => b.lastRoll - a.lastRoll);
+        }
+
+        const currentRoller = (roomData.currentRollerIndex >= 0) ? (roomData.isSpareggio ? roomData.players.filter(p => p.isSpareggiante) : roomData.players.filter(p => p.status === 'active'))[roomData.currentRollerIndex] : null;
+        const triumviriPlayers = (roomData.triumviri || []).map(uid => roomData.players.find(p => p.uid === uid)).filter(Boolean);
+        const currentTriumvirSelectorUid = roomData.triumviri?.[roomData.currentSelectorIndex];
+        
+        const currentChainSaver = roomData.phase === 'catena_distopica' ? roomData.players.find(p => p.uid === roomData.currentChainSaverUid) : null;
+        const savedInChain = roomData.phase === 'catena_distopica' ? roomData.players.filter(p => roomData.savedInChainUids?.includes(p.uid)) : [];
+        const unsavedInChain = roomData.phase === 'catena_distopica' ? roomData.players.filter(p => p.status === 'active' && !roomData.savedInChainUids?.includes(p.uid) && p.uid !== roomData.currentChainSaverUid) : [];
+
+        return (
+            <div className="min-h-screen relative font-mono text-emerald-400 overflow-hidden bg-black flex flex-col font-bold">
+                <style>{`@keyframes heartbeat { to { stroke-dashoffset: 0; } }`}</style>
+                <div className="absolute inset-0 bg-cover bg-center opacity-10 blur-[4px]" style={{ backgroundImage: `url(${BACKGROUNDS[roomData.bgIndex]})` }}></div>
+                <div className="relative z-10 h-16 border-b border-emerald-500/30 flex items-center justify-between px-8 bg-black/80 backdrop-blur-md">
+                    <div className="flex items-center gap-6 font-bold">
+                        <div className="font-black tracking-widest text-2xl text-emerald-500 uppercase font-bold">Algoritmo</div>
+                        <div className="text-[10px] uppercase font-bold text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded font-bold">EPS_{roomData.episode} // {roomData.phase.toUpperCase()}</div>
+                    </div>
+                    {(roomData.phase === 'social' || roomData.phase === 'feed' || roomData.phase === 'voting') && (
+                        <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded border border-emerald-500/20 font-bold">
+                            <span className="text-[10px] uppercase opacity-60 font-black">Pronti: {roomData.readyUids.length}/{humanPlayers.length}</span>
+                            <button onClick={toggleReady} className={`px-4 py-1 text-[10px] rounded border transition-all font-black uppercase ${isReady ? 'bg-emerald-500 text-black border-emerald-500' : 'border-emerald-500/50 hover:bg-emerald-500/10'}`}>
+                                {isReady ? 'OK' : 'SINC'}
+                            </button>
+                            {isHost && (
+                                <button disabled={!allHumansReady}
+                                    onClick={() => {
+                                        if (roomData.phase === 'feed') updateRoom({ phase: 'social', readyUids: [] });
+                                        else if (roomData.phase === 'social') updateRoom({ phase: 'challenge', protocol: ['PURGE', 'DEMOCRAZIA', 'RISCHIO', 'TRIUMVIRATO', 'CATENA'][Math.floor(Math.random()*5)], readyUids: [], currentRollerIndex: -1, isSpareggio: false });
+                                        else if (roomData.phase === 'voting') processVotingResult();
+                                    }}
+                                    className={`px-4 py-1 text-[10px] rounded font-black uppercase ${allHumansReady ? 'bg-white text-black' : 'bg-slate-800 text-slate-500 font-bold'}`}
+                                >Procedi</button>
+                            )}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-4 text-xs font-bold font-bold font-bold"><div className="bg-emerald-500/10 px-3 py-1 border border-emerald-500/20 rounded-full flex items-center gap-2 font-black font-bold"><LucideZap size={14} className="text-yellow-500"/> {myPlayer?.credits} CR</div></div>
+                </div>
+
+                <div className="flex-1 flex relative z-10 overflow-hidden font-bold">
+                    <div className="w-72 bg-black/70 border-r border-emerald-500/20 flex flex-col p-4 font-bold">
+                        <h4 className="text-[10px] font-black text-emerald-600 tracking-widest mb-4 uppercase border-b border-emerald-500/20 pb-2 flex items-center gap-2 font-bold font-bold font-bold"><LucideMessageSquare size={14}/> Feed Sistema</h4>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide font-bold font-bold">
+                            {roomData.logs.slice().reverse().map((l, i) => (
+                                <div key={i} className="border-l-2 border-emerald-500/30 pl-3 py-1 font-bold">
+                                    <div className="text-[10px] text-emerald-100 leading-tight font-bold">{typeof l === 'string' ? l : "Sincronizzazione..."}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 relative overflow-y-auto p-6 font-bold font-bold">
+                        {roomData.phase === 'triumviri_selection' && (
+                            <div className="w-full flex justify-center gap-8 mb-10 font-bold font-bold">
+                                {triumviriPlayers.map((p, idx) => (
+                                    <div key={p.uid} className={`relative flex flex-col items-center transition-all duration-500 ${roomData.currentSelectorIndex === idx ? 'scale-110' : 'opacity-40 grayscale'}`}>
+                                        <div className={`relative border-2 rounded overflow-hidden shadow-2xl ${roomData.currentSelectorIndex === idx ? 'border-yellow-400 ring-2 ring-yellow-400/30 font-bold' : 'border-emerald-500/30'}`}>
+                                            <img src={p.img} className="w-24 h-32 object-cover font-bold font-bold" />
+                                            <div className="absolute top-1 left-1 bg-yellow-500 text-black p-0.5 rounded shadow-lg font-bold"><LucideCrown size={12}/></div>
+                                        </div>
+                                        <div className="mt-2 text-[10px] font-black uppercase text-center text-white font-bold">{p.nickname}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {roomData.phase === 'catena_distopica' && (
+                            <div className="w-full flex flex-col items-center space-y-8 mb-10 font-bold font-bold">
+                                <div className="text-center w-full max-w-sm font-bold">
+                                    <div className="text-[10px] text-blue-400 uppercase font-black tracking-[0.3em] mb-4 font-bold font-bold">Soggetto in controllo</div>
+                                    {currentChainSaver && (
+                                        <div className="relative border-4 border-blue-500 rounded p-1 bg-blue-500/10 animate-pulse font-bold mx-auto w-40 aspect-[3/4]">
+                                            <img src={currentChainSaver.img} className="w-full h-full object-cover rounded" />
+                                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-3 py-1 text-[10px] font-black uppercase rounded shadow-lg whitespace-nowrap font-bold">{currentChainSaver.nickname}</div>
+                                        </div>
+                                    )}
+                                </div>
+                                {savedInChain.length > 0 && (
+                                    <div className="w-full border-t border-white/5 pt-4 font-bold">
+                                        <div className="text-[10px] text-emerald-500 uppercase font-black mb-3 flex items-center gap-2 font-bold"><LucideShield size={12}/> Salvati nel Segmento</div>
+                                        <div className="flex flex-wrap gap-3 font-bold font-bold">
+                                            {savedInChain.map(p => (
+                                                <div key={p.uid} className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 p-1.5 pr-4 rounded font-bold font-bold">
+                                                    <div className="w-10 h-10 rounded overflow-hidden border border-emerald-500/50">
+                                                        <img src={p.img} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-tighter">{p.nickname}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex-1 flex flex-col items-center justify-center font-bold">
+                            {roomData.phase === 'ceremony' ? (
+                                <div className="w-full max-w-5xl text-center space-y-8 font-bold font-bold">
+                                    <h2 className="text-3xl font-black text-white tracking-[0.5em] uppercase font-bold font-bold">Cerimonia Disconnessione</h2>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-items-center font-bold">
+                                        {roomData.ceremonyOrder.slice(0, roomData.ceremonyRevealedCount + 1).map((uid, idx) => {
+                                            const p = roomData.players.find(pl => pl.uid === uid);
+                                            const isEliminated = uid === roomData.eliminatedUid && roomData.ceremonyRevealedCount === roomData.ceremonyOrder.length - 1;
+                                            return (
+                                                <div key={uid} className={`relative border-2 transition-all duration-1000 w-full max-w-[160px] font-bold ${isEliminated ? 'border-red-600 scale-105 shadow-[0_0_30px_rgba(220,38,38,0.5)] z-20 font-bold' : 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}`}>
+                                                    <div className="aspect-[3/4] overflow-hidden relative font-bold">
+                                                        <img src={p.img} className="w-full h-full object-cover" />
+                                                        <div className="absolute top-0 left-0 right-0 p-1 font-bold"><HeartbeatWave fast={isEliminated} /></div>
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/90 border-t border-white/10 font-bold font-bold">
+                                                            <div className="text-[10px] font-black text-white uppercase truncate mb-1">{p.nickname}</div>
+                                                            <div className={`text-[8px] font-black py-0.5 px-1.5 rounded inline-block ${isEliminated ? 'bg-red-600/20 text-red-400 border border-red-600/50' : 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/50 font-bold'}`}>
+                                                                {roomData.protocol === 'RISCHIO' ? `${roomData.votes[uid]} ⭐` : `${roomData.votes[uid]} VOTI`}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {isHost && <div className="pt-8 font-bold"><button onClick={nextCeremonyStep} className="bg-white text-black px-12 py-3 font-black uppercase text-xs hover:bg-emerald-400 transition-all font-bold font-bold font-bold">Prossimo Candidato</button></div>}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 w-full max-w-7xl mx-auto font-bold font-bold">
+                                    {(roomData.phase === 'catena_distopica' ? unsavedInChain : subjectsToShow).map(p => {
+                                        const isMe = p.uid === user.uid;
+                                        const myRel = myPlayer?.relationships?.[p.uid] || 0;
+                                        const isAlly = myPlayer?.allies?.includes(p.uid);
+                                        const currentVote = roomData.votes[user.uid];
+                                        const myVote = roomData.phase === 'voting' && roomData.protocol !== 'RISCHIO' && currentVote === p.uid;
+                                        return (
+                                            <div key={p.uid} 
+                                                onClick={() => {
+                                                    if (roomData.phase === 'social' && !isMe) setSelectedTarget(p);
+                                                    if (roomData.phase === 'triumviri_selection' && currentTriumvirSelectorUid === user.uid && !p.isCandidate && !p.isImmune) selectTriumviratoCandidate(p.uid);
+                                                    if (roomData.phase === 'voting' && roomData.protocol !== 'RISCHIO' && p.isCandidate && myPlayer) submitVote(p.uid);
+                                                    if (roomData.phase === 'catena_distopica' && roomData.currentChainSaverUid === user.uid && !roomData.savedInChainUids?.includes(p.uid) && p.uid !== user.uid) handleChainSave(p.uid);
+                                                }}
+                                                className={`relative group border-2 transition-all duration-300 font-bold ${isMe ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-emerald-500/20'} ${p.isCandidate ? 'border-red-600 ring-4 ring-red-500/50 scale-105 font-bold' : 'cursor-pointer hover:border-emerald-400/40'} ${myVote ? 'border-yellow-400 ring-4 ring-yellow-400 shadow-xl' : ''}`}
+                                            >
+                                                <div className="aspect-[3/4] overflow-hidden relative font-bold font-bold">
+                                                    <img src={p.img} className="w-full h-full object-cover" />
+                                                    <div className="absolute top-0 left-0 right-0 p-1 font-bold"><HeartbeatWave fast={p.isCandidate || p.isSpareggiante} /></div>
+                                                    {myVote && <div className="absolute top-1 left-1 z-50 bg-yellow-500 text-black px-2 py-0.5 text-[8px] font-black uppercase rounded shadow-lg font-bold">Il Tuo Voto</div>}
+                                                    {isAlly && <div className="absolute top-1 right-1 bg-blue-600 p-0.5 rounded shadow-lg z-30 font-bold font-bold"><LucideHandshake size={12}/></div>}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/90 border-t-2 border-emerald-500/20 font-bold font-bold">
+                                                        <div className="text-[8px] font-black text-white uppercase truncate text-center font-bold">{p.isBot ? p.character : p.nickname}</div>
+                                                        {p.lastRoll > 0 && <div className="text-[10px] font-black text-emerald-400 text-center uppercase tracking-widest font-bold">DADO: {p.lastRoll}</div>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="h-48 bg-black/95 border-t-2 border-emerald-500/30 p-4 flex gap-4 relative z-20 font-bold font-bold">
+                    <div className="flex-1 flex flex-col items-center justify-center font-bold">
+                        {roomData.phase === 'social' && (
+                            <div className="w-full max-w-xl animate-in slide-in-from-bottom font-bold">
+                                {selectedTarget ? (
+                                    <div className="space-y-3 font-bold font-bold">
+                                        <div className="text-center text-[10px] uppercase text-emerald-500 font-bold">Target: <span className="text-white font-black">{selectedTarget.nickname}</span></div>
+                                        <div className="grid grid-cols-2 gap-2 font-bold font-bold">
+                                            <button onClick={() => handleSocialAction('amicizia')} className="p-2 bg-emerald-500/10 border-2 border-emerald-500/30 rounded uppercase text-[10px] font-black hover:bg-emerald-400 font-bold flex items-center justify-center gap-2"><LucideHeart size={14}/> Amicizia</button>
+                                            <button onClick={() => handleSocialAction('denuncia')} className="p-2 bg-red-500/10 border-2 border-red-500/30 rounded uppercase text-[10px] font-black hover:bg-red-400 font-bold flex items-center justify-center gap-2 font-bold font-bold"><LucideSkull size={14}/> Denuncia</button>
+                                            <button onClick={() => handleSocialAction('alleanza')} className="p-2 bg-blue-500/10 border-2 border-blue-500/30 rounded uppercase text-[10px] font-black hover:bg-blue-400 font-bold flex items-center justify-center gap-2 font-bold font-bold"><LucideHandshake size={14}/> Alleanza</button>
+                                            <button onClick={() => setSocialSecondaryTarget('selecting')} className="p-2 bg-purple-500/10 border-2 border-purple-500/30 rounded uppercase text-[10px] font-black hover:bg-purple-400 font-bold flex items-center justify-center gap-2 font-bold font-bold font-bold"><LucideGhost size={14}/> Zizzania</button>
+                                        </div>
+                                    </div>
+                                ) : <div className="text-center opacity-40 uppercase text-[10px] font-black tracking-widest font-bold">Seleziona un soggetto per l'interazione</div>}
+                            </div>
+                        )}
+                        {(roomData.phase === 'challenge' || roomData.isSpareggio) && (
+                            <div className="text-center space-y-3 font-bold font-bold">
+                                <div className="text-2xl font-black text-emerald-500 uppercase tracking-[0.4em] drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] font-bold">{roomData.isSpareggio ? 'SPAREGGIO' : roomData.protocol}</div>
+                                {roomData.currentRollerIndex === -1 ? (isHost && <button onClick={startRollingSequence} className="px-14 py-3 bg-emerald-600 text-black font-black uppercase text-sm font-bold">Inizia Lanci</button>) : 
+                                 roomData.currentRollerIndex === -2 ? (isHost && <button onClick={processChallenge} className="px-14 py-3 bg-white text-black font-black uppercase text-sm font-bold font-bold font-bold">Processa Destino</button>) :
+                                 (<div className="flex flex-col items-center gap-3 font-bold">
+                                    <div className="text-[12px] uppercase animate-pulse font-black text-emerald-300 font-bold font-bold">Analizzando: <span className="text-white">{currentRoller?.nickname}</span></div>
+                                    {currentRoller?.uid === user.uid && <button onClick={rollDices} className="px-14 py-4 bg-emerald-500 text-black font-black uppercase text-sm rounded-full shadow-lg font-bold font-bold font-bold">Lancia Dado</button>}
+                                 </div>)}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (view === 'ranking') {
+        const history = [...(roomData.eliminatedHistory || [])].reverse();
+        const winner = roomData.players.find(p => p.uid === roomData.winnerUid);
+        return (
+            <div className="min-h-screen bg-slate-950 text-white font-mono flex flex-col items-center p-10 overflow-y-auto font-bold font-bold">
+                <div className="w-full max-w-4xl space-y-12 font-bold font-bold">
+                    <div className="text-center space-y-4 font-bold font-bold">
+                        <LucideTrophy size={80} className="mx-auto text-yellow-500 animate-bounce font-bold font-bold" />
+                        <h1 className="text-6xl font-black uppercase tracking-tighter text-yellow-500 font-bold font-bold font-bold">VINCITORE</h1>
+                    </div>
+                    <div className="relative bg-gradient-to-b from-yellow-500/20 to-transparent border-4 border-yellow-500 p-8 rounded-2xl flex flex-col items-center shadow-2xl font-bold font-bold font-bold">
+                        <img src={winner?.img} className="w-48 h-64 object-cover rounded-xl border-4 border-yellow-400 mb-6 font-bold" />
+                        <div className="text-4xl font-black uppercase font-bold font-bold font-bold">{winner?.nickname}</div>
+                    </div>
+                    <div className="space-y-4 pt-10 font-bold font-bold font-bold">
+                        <h2 className="text-2xl font-black uppercase border-b border-white/10 pb-4 text-emerald-500 tracking-widest font-bold">Cronologia Eliminazioni</h2>
+                        <div className="space-y-3 font-bold font-bold font-bold">
+                            {history.map((p, idx) => (
+                                <div key={p.uid} className="bg-slate-900/50 border border-white/10 p-4 rounded-xl flex items-center justify-between font-bold font-bold font-bold font-bold">
+                                    <div className="flex items-center gap-6 font-bold font-bold font-bold font-bold">
+                                        <div className="text-2xl font-black text-white/20 italic font-bold">#{idx + 2}</div>
+                                        <img src={p.img} className="w-16 h-16 border-2 border-white/20 rounded-lg overflow-hidden font-bold" />
+                                        <div className="text-xl font-black uppercase text-white font-bold">{p.nickname}</div>
+                                    </div>
+                                    <div className="bg-red-500/10 border border-red-500/30 text-red-500 px-4 py-1 rounded-full text-xs font-black uppercase font-bold font-bold font-bold font-bold">{p.eliminatedIn}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <button onClick={abandonGame} className="w-full bg-white text-black py-6 rounded-xl font-black text-xl uppercase hover:bg-emerald-400 transition-all font-bold font-bold font-bold font-bold font-bold">Abbandona e Torna al Login</button>
+                </div>
+            </div>
+        );
+    }
+    return null;
+}
